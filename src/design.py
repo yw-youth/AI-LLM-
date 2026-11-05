@@ -100,9 +100,42 @@ def mock_bom(requirement: str) -> dict:
     r = requirement.lower()
     if "esp32" in r or "温湿度" in requirement or "采集" in requirement:
         return copy.deepcopy(_BOM_ESP32)
-    if "电源" in requirement or "稳压" in requirement or "ldo" in r:
+    # 注意：不能用"电源"这种泛关键词——"加个电源灯"会被误判成电源板。
+    # 这类误判是规则匹配的典型缺陷，正是报告"失败案例"的素材。
+    if "稳压" in requirement or "ldo" in r or "电源板" in requirement or "转 3.3" in requirement:
         return copy.deepcopy(_BOM_POWER)
     return copy.deepcopy(_BOM_ARDUINO)
+
+
+# ---------------------------------------------------------------- 能力边界
+
+# 报告 1.3「功能边界」和答辩问题"换块复杂的板子还行吗"的答案，就落在这张表上。
+# 一个会拒绝的 Agent，比一个什么都答应的 Agent 可信。
+UNSUPPORTED = {
+    "pcie": "PCIe 属于高速串行总线，需要阻抗控制与多层叠层，超出本 Agent 的建模能力",
+    "ddr": "DDR 存储器接口涉及时序等长与阻抗匹配，本 Agent 只做基础连接",
+    "hdmi": "HDMI 是高速差分信号，本 Agent 不处理差分对与长度匹配",
+    "usb3": "USB 3.x 属超高速差分，超出能力范围",
+    "射频": "射频电路依赖版图寄生参数，无法用网表级表示",
+    "天线": "天线设计需要电磁仿真，不适用本流程",
+    "多层板": "本 Agent 只输出原理图与网表，不做叠层设计",
+    "阻抗": "阻抗控制属于 PCB 布局阶段，超出本 Agent 范围",
+}
+
+
+def out_of_scope(requirement: str) -> str | None:
+    """返回拒绝理由；能处理则返回 None。
+
+    注意：这是"能力边界"，不是"错误提示"。拒绝时要给出原因和替代方案，
+    这才是工程交付该有的样子。
+    """
+    r = requirement.lower()
+    for key, reason in UNSUPPORTED.items():
+        if key in r:
+            return reason
+    if len(requirement.strip()) < 6:
+        return "需求信息不足以确定板型与主控，至少说明用途或核心器件"
+    return None
 
 
 # ---------------------------------------------------------------- 网表

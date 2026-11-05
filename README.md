@@ -35,8 +35,8 @@ ls out/            # bom.csv / bom.json / netlist.json / board.net
 
 ```
 [1/5] 解析需求 ............ OK  板卡: Arduino 最小系统板, 主控: ATmega328P-AU, 供电: 5V
-[2/5] 生成 BOM ............ OK  9 项元器件
-[3/5] 生成引脚级网表 ...... OK  7 个网络 / 14 个连接
+[2/5] 生成 BOM ............ OK  Arduino 最小系统板 / ATmega328P-AU / 11 项元器件
+[3/5] 生成引脚级网表 ...... OK  8 个网络 / 29 个引脚连接
 [4/5] 自检（类 DRC） ...... OK  无悬空网络、无重复引脚、无未定义器件
 [5/5] 导出 ................ OK  out/bom.csv, out/bom.json, out/netlist.json, out/board.net
 ```

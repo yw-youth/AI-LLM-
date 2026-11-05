@@ -209,6 +209,15 @@ def main(argv: list[str] | None = None) -> int:
     if not step_env(log):
         return 2
 
+    reason = design.out_of_scope(args.requirement)
+    if reason:
+        log.step(2, "需求可行性     ")
+        log.fail("超出能力边界，拒绝生成")
+        print(f"        理由：{reason}")
+        print("        能做的范围：常见的单片最小系统、传感采集、线性稳压小板（单/双面板，网表级）。")
+        print("        建议：把需求收敛到「用途 + 主控 + 供电」，再跑一次。")
+        return 3
+
     bom = step_bom(log, args.requirement, args.live)
     netlist = step_netlist(log, bom, args.requirement, args.live)
     errors = step_validate(log, bom, netlist)
