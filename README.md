@@ -72,7 +72,11 @@ pcb-agent/
 │   ├── validate.py         # 自检：悬空网络、重复引脚、器件缺号
 │   └── kicad_export.py     # JSON → KiCad 网表（.net）与原理图骨架
 ├── scripts/
-│   └── checkin.py          # 每周 check-in：写 PROGRESS.md + git commit
+│   ├── checkin.py          # 每周 check-in：写 PROGRESS.md + git commit + 密钥扫描
+│   └── regress.py          # 10 条用例回归集（mock 可判定项的基线）
+├── .github/workflows/      # CI：push 时自动跑冒烟 + 回归（Linux/Windows × 2 个 Python 版本）
+├── .env.example            # 环境变量模板（复制为 .env，已被 gitignore）
+├── LICENSE                 # MIT
 ├── docs/
 │   ├── 01-任务拆解与评分策略.md
 │   ├── 02-8周执行计划.md
@@ -92,22 +96,24 @@ pcb-agent/
 | 答辩演示 | 10 | 按 `docs/04-答辩5分钟提纲.md` 讲，现场真跑一次 |
 | 过程表现 | 10 | 每周 `python scripts/checkin.py` 一条 commit，见 `PROGRESS.md` |
 
-## AI 使用声明（必填，学术诚信要求）
+## AI 使用声明（学术诚信要求，如实申报）
 
 | 环节 | 用了什么 | 说明 |
 |---|---|---|
-| 代码骨架 | Claude / ChatGPT | 脚手架、JSON Schema、导出脚本初版由 AI 生成，本人改写与调试 |
-| Prompt | | |
-| 文档 / 报告 | | |
+| 代码骨架 | AI 助手（WorkBuddy） | 流水线骨架、JSON Schema、导出与自检脚本初版由 AI 生成，本人逐行审查、调试并修正（如封装命名正则、电源板关键词误判） |
+| Prompt | AI 助手初稿 + 本人迭代 | `prompts/` 四个模板；失败案例驱动的改写由本人完成 |
+| 文档 / 报告 | 本人撰写，AI 辅助排版 | 技术决策、实验数据均为本人产出 |
 | 图 / PPT | | |
+
+> 待办：报告提交前逐行核对本表，与实际使用情况一致；`<你的姓名/学号>` 处见 LICENSE。
 
 关键设计决策（为什么这么连、为什么这么写 Prompt）必须能口头解释，答辩会问。
 
 ## 参考出处
 
-- 课程模板工程：`<填写课程提供的仓库地址>`
+- 课程模板工程：`<!-- TODO：拿到课程模板仓库后，在此填地址并注明借鉴了哪些部分 -->`
 - KiCad 8 官方文档：https://docs.kicad.org/
-- `<其他引用的开源仓库>`
+- KiCad 网表格式（`board.net` 的目标格式）：https://dev-docs.kicad.org/en/file-formats/
 
 ---
 
