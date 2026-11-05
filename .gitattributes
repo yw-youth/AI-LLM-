@@ -1,0 +1,10 @@
+# 统一换行符，避免 Windows 上每次提交都出现 "LF will be replaced by CRLF" 警告，
+# 也让 .md / .json 的 diff 干净（不然每行都显示变更）。
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.pdf binary
+*.kicad_sch text eol=lf
+*.kicad_pcb text eol=lf
+*.net text eol=lf

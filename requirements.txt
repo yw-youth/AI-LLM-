@@ -1,0 +1,11 @@
+# 本项目刻意只用 Python 标准库 —— 助教 clone 下来不用 pip install 就能跑。
+# 这里列出的是"接真实模型 / 做 KiCad 集成"之后才可能用到的可选依赖。
+
+# 可选：走 OpenAI 官方 SDK（本仓库默认用标准库 urllib，无需安装）
+# openai>=1.30.0
+
+# 可选：读写 .kicad_sch（W5 原理图生成阶段强烈建议用，比手拼 s-expression 稳）
+# kiutils>=1.4.8
+
+# 可选：跑测试
+# pytest>=8.0.0

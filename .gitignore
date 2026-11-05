@@ -1,0 +1,32 @@
+# 运行产物：每次跑都会重新生成，不需要版本管理
+out/
+
+# 密钥：绝对不能提交
+.env
+.env.*
+config.local.py
+*.key
+secrets.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# KiCad 中间文件（保留 .kicad_sch / .kicad_pcb / .kicad_pro）
+*.kicad_prl
+*-backups/
+*.bak
+fp-info-cache
+_autosave-*
+~*.kicad_sch
+~*.kicad_pcb
