@@ -4,7 +4,7 @@
     [2/5] 需求 → BOM      LLM 或 mock
     [3/5] BOM → 网表      引脚级连接（ref + pin → net）
     [4/5] 自检            悬空网络 / 引脚冲突 / 未定义器件
-    [5/5] 导出            bom.csv / bom.json / netlist.json / board.net
+    [5/5] 导出            bom.csv / bom.json / netlist.json / board.net / board.kicad_sch
 
 用法：
     python src/pipeline.py "帮我设计一块 Arduino 最小系统板"
@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import design
 import kicad_export
+import kicad_sch
 import llm
 import validate
 
@@ -154,6 +155,8 @@ def step_export(log: Log, bom: dict, netlist: dict, out: Path) -> list[Path]:
         kicad_export.write_json(netlist, out / "netlist.json"),
         kicad_export.write_kicad_netlist(bom, netlist, out / "board.net"),
     ]
+    # 原理图工程包（.kicad_sch + 符号库 + 库表 + .kicad_pro）
+    files += kicad_sch.write_project(bom, netlist, out, stem="board")
     log.ok(", ".join(p.name for p in files))
     return files
 
@@ -236,7 +239,7 @@ def main(argv: list[str] | None = None) -> int:
     step_export(log, bom, netlist, out)
     print()
     print(f"完成。产物在 {out}")
-    print("下一步：KiCad → 工具 → 从网表更新 PCB，或按 docs/02-8周执行计划.md 的 W5 做原理图生成。")
+    print(f"下一步：用 KiCad 8 打开 {out / 'board.kicad_pro'} 查看原理图。")
     return 0
 
 

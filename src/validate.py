@@ -123,6 +123,21 @@ def check_netlist(netlist: dict, bom: dict | None = None) -> list[dict]:
                 ))
             pin_owner[key] = name
 
+    # 两脚被动器件只接了一个脚 → 另一脚悬空。
+    # 这一条是补出来的：原先只查"悬空网络"（一个网络只挂 1 个引脚），
+    # 但 C3 的 1 脚根本没进任何网络，属于"器件悬空"，两种错长得不一样。
+    pins_per_ref: dict[str, set[str]] = {}
+    for (ref, num) in pin_owner:
+        pins_per_ref.setdefault(ref, set()).add(num)
+    for ref in sorted(pins_per_ref):
+        prefix = ref.rstrip("0123456789")
+        if prefix in ("R", "C", "L", "D", "Y") and len(pins_per_ref[ref]) == 1:
+            only = next(iter(pins_per_ref[ref]))
+            out.append(_warn(
+                "net.open_pin",
+                f"{ref} 只有引脚 {only} 进了网络，另一脚悬空（两脚器件必须两脚都接）",
+            ))
+
     # GND 必须存在
     if "GND" not in names:
         out.append(_err("net.no_gnd", "缺少 GND 网络"))

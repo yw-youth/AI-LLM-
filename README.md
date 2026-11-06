@@ -28,18 +28,33 @@ python --version
 python src/pipeline.py "帮我设计一块 Arduino 最小系统板"
 
 # 3. 看产物
-ls out/            # bom.csv / bom.json / netlist.json / board.net
+ls out/            # bom.csv / bom.json / netlist.json / board.net / board.kicad_sch ...
 ```
 
 预期输出类似：
 
 ```
-[1/5] 解析需求 ............ OK  板卡: Arduino 最小系统板, 主控: ATmega328P-AU, 供电: 5V
-[2/5] 生成 BOM ............ OK  Arduino 最小系统板 / ATmega328P-AU / 11 项元器件
-[3/5] 生成引脚级网表 ...... OK  8 个网络 / 29 个引脚连接
-[4/5] 自检（类 DRC） ...... OK  无悬空网络、无重复引脚、无未定义器件
-[5/5] 导出 ................ OK  out/bom.csv, out/bom.json, out/netlist.json, out/board.net
+[1/5] 环境检查        OK  Python 3.13 / KiCad 未在 PATH（不影响本步） / 无 API Key → 使用 mock 模型
+[2/5] 需求 → BOM      OK  Arduino 最小系统板 / ATmega328P-AU / 11 项元器件
+[3/5] BOM → 网表      OK  8 个网络 / 30 个引脚连接
+[4/5] 自检（类 DRC）   OK  无悬空网络、无重复引脚、无未定义器件
+[5/5] 导出            OK  bom.csv, bom.json, netlist.json, board.net, board.kicad_sch, ...
 ```
+
+## 在 KiCad 里看结果 + 机器验收
+
+用 **KiCad 8** 打开 `out/board.kicad_pro`，就能看到自动生成的原理图（器件符号 + 网络标签）。
+
+想证明"真的没问题"不要靠肉眼，跑 KiCad 自带的电气规则检查：
+
+```bash
+python scripts/kicad_check.py          # 自动找 kicad-cli，跑 ERC，汇总错误/警告数
+```
+
+当前三种板型的结果均为 **0 错误 / 0 警告**（明细见 `out/board.erc.rpt`）。
+
+> 连接用**网络标签**表达（同名即同网络），不画 wire——这是"连接正确性"与"画图工作量"
+> 之间的取舍，报告的技术选型一节有完整说明。
 
 接真实大模型时：
 
@@ -69,10 +84,12 @@ pcb-agent/
 │   ├── pipeline.py         # 五步主流程 + 编排
 │   ├── llm.py              # LLM 调用封装（兼容 OpenAI 协议）+ mock 兜底
 │   ├── design.py           # 需求解析 / BOM / 网表 的 mock 规则实现
-│   ├── validate.py         # 自检：悬空网络、重复引脚、器件缺号
-│   └── kicad_export.py     # JSON → KiCad 网表（.net）与原理图骨架
+│   ├── validate.py         # 自检：悬空网络、重复引脚、器件缺号、两脚器件单端悬空
+│   ├── kicad_sch.py        # 网表 → 原理图工程（.kicad_sch + 符号库 + 库表 + .kicad_pro）
+│   └── kicad_export.py     # JSON → KiCad 网表（.net）
 ├── scripts/
 │   ├── checkin.py          # 每周 check-in：写 PROGRESS.md + git commit + 密钥扫描
+│   ├── kicad_check.py      # 调 kicad-cli 跑 ERC，把"能打开"变成机器判据
 │   └── regress.py          # 10 条用例回归集（mock 可判定项的基线）
 ├── .github/workflows/      # CI：push 时自动跑冒烟 + 回归（Linux/Windows × 2 个 Python 版本）
 ├── .env.example            # 环境变量模板（复制为 .env，已被 gitignore）

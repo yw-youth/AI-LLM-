@@ -25,7 +25,8 @@ F = {
     "SOT223": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
     "HDR2": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
     "ESP32": "RF_Module:ESP32-WROOM-32",
-    "DHT11": "Sensor:DHT11",
+    # 曾写成 "Sensor:DHT11"（KiCad 库里没有这个封装，ERC 报 footprint_link_issues）
+    "DHT11": "Sensor:Aosong_DHT11_5.5x12.0_P2.54mm",
 }
 
 
@@ -144,7 +145,11 @@ def out_of_scope(requirement: str) -> str | None:
 # RESET=29  XTAL1=7  XTAL2=8  PB5=17(Arduino D13)
 _NET_ARDUINO = {
     "nets": [
-        _net("+5V", [_p("J1", "1"), _p("U1", "4"), _p("U1", "6"), _p("R1", "1"), _p("C5", "1")]),
+        # C5=10uF 做输入储能，C3=100nF 做 VCC 高频去耦（曾漏接，被自检"引脚悬空"抓到）
+        _net("+5V", [
+            _p("J1", "1"), _p("U1", "4"), _p("U1", "6"),
+            _p("R1", "1"), _p("C3", "1"), _p("C5", "1"),
+        ]),
         _net("GND", [
             _p("J1", "2"), _p("U1", "3"), _p("U1", "5"), _p("U1", "21"),
             _p("C1", "2"), _p("C2", "2"), _p("C3", "2"), _p("C4", "2"),
