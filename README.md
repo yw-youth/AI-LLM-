@@ -56,6 +56,22 @@ python scripts/kicad_check.py          # 自动找 kicad-cli，跑 ERC，汇总�
 > 连接用**网络标签**表达（同名即同网络），不画 wire——这是"连接正确性"与"画图工作量"
 > 之间的取舍，报告的技术选型一节有完整说明。
 
+## DRC 检查闭环（进阶挑战）
+
+自检层发现错误后不是停下来报错，而是**把错误回填、自动修复、再复检**，直到干净或确认修不了：
+
+```bash
+python scripts/demo_loop.py            # 注入 5 种真实模型会犯的错，看闭环逐轮修复
+```
+
+每个场景打印两行以上：检出什么（错误码 + 位置）→ 修了什么 → 复检结果，并汇总写进
+`out/loop_report.md`（过程证据，报告与答辩直接引用）。报告末尾还有一道终验：
+**修复后的网表重新生成原理图，交给 KiCad ERC 亲自判**——5 个场景全部 PASS。
+
+5 种注入故障：去耦电容单端悬空、幻觉位号、引脚冲突、电源命名混用（VCC/+5V）、缺少 GND。
+全部在 **2 轮内**闭环修复。真实模型接入后，修复环节由规则替换为
+`validate.format_for_llm()` 的错误文本回填 Prompt，接口形状不变。
+
 接真实大模型时：
 
 ```bash
@@ -85,11 +101,15 @@ pcb-agent/
 │   ├── llm.py              # LLM 调用封装（兼容 OpenAI 协议）+ mock 兜底
 │   ├── design.py           # 需求解析 / BOM / 网表 的 mock 规则实现
 │   ├── validate.py         # 自检：悬空网络、重复引脚、器件缺号、两脚器件单端悬空
+│   ├── loop.py             # DRC 闭环调度：检查 → 修复 → 复检，逐轮记录
+│   ├── repair.py           # 规则修复器：只修能从错误信息安全推断的错，其余如实上报
+│   ├── faults.py           # 故障注入器：把"模型会怎么错"变成可复现的测试用例
 │   ├── kicad_sch.py        # 网表 → 原理图工程（.kicad_sch + 符号库 + 库表 + .kicad_pro）
 │   └── kicad_export.py     # JSON → KiCad 网表（.net）
 ├── scripts/
 │   ├── checkin.py          # 每周 check-in：写 PROGRESS.md + git commit + 密钥扫描
 │   ├── kicad_check.py      # 调 kicad-cli 跑 ERC，把"能打开"变成机器判据
+│   ├── demo_loop.py        # 闭环演示：5 种故障注入 → 修复 → ERC 终验 → loop_report.md
 │   └── regress.py          # 10 条用例回归集（mock 可判定项的基线）
 ├── .github/workflows/      # CI：push 时自动跑冒烟 + 回归（Linux/Windows × 2 个 Python 版本）
 ├── .env.example            # 环境变量模板（复制为 .env，已被 gitignore）
