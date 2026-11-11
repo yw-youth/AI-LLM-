@@ -110,6 +110,7 @@ pcb-agent/
 │   ├── checkin.py          # 每周 check-in：写 PROGRESS.md + git commit + 密钥扫描
 │   ├── kicad_check.py      # 调 kicad-cli 跑 ERC，把"能打开"变成机器判据
 │   ├── demo_loop.py        # 闭环演示：5 种故障注入 → 修复 → ERC 终验 → loop_report.md
+│   ├── stability.py        # 稳定性台架：三板型×N 次通过率/耗时 → stability_report.md
 │   └── regress.py          # 10 条用例回归集（mock 可判定项的基线）
 ├── .github/workflows/      # CI：push 时自动跑冒烟 + 回归（Linux/Windows × 2 个 Python 版本）
 ├── .env.example            # 环境变量模板（复制为 .env，已被 gitignore）
@@ -119,7 +120,9 @@ pcb-agent/
 │   ├── 02-8周执行计划.md
 │   ├── 03-设计报告骨架.md
 │   ├── 04-答辩5分钟提纲.md
-│   └── 05-Git留痕规范.md
+│   ├── 05-Git留痕规范.md
+│   ├── 06-失败案例.md          # 6 个真实案例：触发/现象/定位/根因/修法/教训
+│   └── 07-设计报告初稿.md      # 报告正文初稿，数字全部来自真实运行结果
 └── out/                    # 运行产物（已被 .gitignore 忽略）
 ```
 
@@ -129,7 +132,7 @@ pcb-agent/
 |---|---|---|
 | 基础功能 | 40 | 五步走全部跑通：环境 → BOM → 连接关系 → KiCad 原理图 → 追问修正 |
 | 进阶挑战 | 20 | 建议选「DRC 检查闭环」（`src/validate.py` 已是雏形，最容易变成完整闭环） |
-| 设计报告 | 20 | 按 `docs/03-设计报告骨架.md` 填，重点写**失败案例** |
+| 设计报告 | 20 | 初稿已成：`docs/07-设计报告初稿.md`（⏳ 项等 --live 数据回填） |
 | 答辩演示 | 10 | 按 `docs/04-答辩5分钟提纲.md` 讲，现场真跑一次 |
 | 过程表现 | 10 | 每周 `python scripts/checkin.py` 一条 commit，见 `PROGRESS.md` |
 

@@ -14,14 +14,17 @@
 | -- | ---------- | ---------------------------------------------------------------- | ------- | ---------- | --------------------------- |
 | W1 | 2026-11-05 | 搭建项目骨架：五步流水线(mock 可跑)、BOM/网表 Schema、Prompt 模板、自检层、导出层、checkin 脚本 | 自检 0 错误 | KiCad 尚未安装 | 装 KiCad 8 + 配 API Key，跑真实模型 |
 | W10 | 2026-11-06 | 原理图生成打通：`kicad_sch.py` 输出 KiCad 8 工程包（.kicad_sch + 符号库 + 库表 + .kicad_pro）；三种板型 ERC 均 0 错误 0 警告；自检层补"器件引脚悬空"检查 | 3 板型 ERC 0/0；修掉 C3 悬空、DHT11 封装名两处真 bug | KiCad 只有 10.0.7（课程要 8） | 装 KiCad 8.0 复验；接真实模型 |
+| W10 | 2026-11-10 | DRC 检查闭环：`loop.py/repair.py/faults.py` + `demo_loop.py`，5 故障场景（去耦悬空/幻觉位号/引脚冲突/电源混用/缺GND）全部 ≤2 轮收敛，修复结果过 KiCad ERC 5/5；发现并修复"修复器振荡"bug（失败案例 6） | 闭环 5/5；ERC 终验 5/5 PASS | 无 | GitHub 推送；KiCad 8 复验 |
+| W10 | 2026-11-11 | W11/W14 提前：稳定性台架 `stability.py`（三板型×5 基线 15/15，中位 0.82–0.87s）；设计报告初稿 `docs/07-设计报告初稿.md`（六章全，数字来自真实运行，⏳ 项待 --live 回填） | mock 基线 15/15 | API Key 未配、GitHub 未推 | --live 后跑 `stability.py --live` 回填报告 4.2/4.3 节 |
 
 ## 里程碑
 
 - [x] 脚手架跑通（`python src/pipeline.py "..."` 能出产物文件）
 - [x] 需求 → BOM + 引脚级网表（三种板型；回归集 8/8）
 - [x] 原理图生成（`out/board.kicad_pro` 可打开；ERC 0 错误 0 警告）
-- [ ] 真实模型接入（`--live` 稳定产出合规 JSON）
-- [ ] DRC 闭环（ERC 报告回填 Prompt 自纠）
+- [x] DRC 闭环（5 故障场景 ≤2 轮收敛，修复结果过 KiCad ERC 5/5；`out/loop_report.md`）
+- [x] 设计报告初稿（`docs/07-设计报告初稿.md`；⏳ 项待 --live 数据回填）
+- [ ] 真实模型接入（台架已备好：`python scripts/stability.py --live`）
 - [ ] 正式交付（仓库 + 报告 + 视频 + PPT）
 
 ## 怎么更新
