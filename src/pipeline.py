@@ -239,7 +239,7 @@ def main(argv: list[str] | None = None) -> int:
     step_export(log, bom, netlist, out)
     print()
     print(f"完成。产物在 {out}")
-    print(f"下一步：用 KiCad 8 打开 {out / 'board.kicad_pro'} 查看原理图。")
+    print(f"下一步：用 KiCad 打开 {out / 'board.kicad_pro'} 查看原理图。")
     return 0
 
 

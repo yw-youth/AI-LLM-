@@ -222,6 +222,109 @@ def _label_angle(pin_angle: int) -> int:
     return 0 if pin_angle == 0 else 180
 
 
+# ---------------------------------------------------------------- 布局
+
+# 图纸尺寸（横向，单位 mm）。KiCad 只接受这几个标准图幅，不能自定义大小。
+_PAPERS = [("A4", 297.0, 210.0), ("A3", 420.0, 297.0), ("A2", 594.0, 420.0)]
+
+# 标签从引脚向外延伸的预留宽度。取网络名最长约 18 字符 × 1.0mm + 余量。
+_LABEL_ROOM = 26.0
+
+ROW_STEP = 24.13  # 19 × 1.27，贴 50mil 栅格
+COL_STEP = 36.83  # 29 × 1.27
+ROWS_CAP = 5      # 每列最多 5 个器件，再多就向外开新列
+
+
+def _symbol_size(kind: str, numbers: list[str]) -> tuple[float, float]:
+    """返回符号的 (半宽, 半高)，含引脚长度。用于排版时算包围盒。"""
+    if kind in ("RES", "CAP", "XTAL"):
+        return (2.032, 3.81 + 3.81)
+    rows = max((len(numbers) + 1) // 2, len(numbers) - (len(numbers) + 1) // 2, 1)
+    return (7.62 + 3.81, (rows - 1) * 2.54 / 2 + 2.54)
+
+
+def _layout(draw: list[tuple[dict, str, list[str]]]) -> tuple[dict[str, tuple[float, float]], str]:
+    """按功能分区排版，返回 ({位号: (x, y)}, 图幅名)。
+
+    为什么不用"一行 N 个"的等距网格：器件角色决定了它们在图上该站哪儿。
+    主控是读图人的锚点，应居中；连接器在左、去耦与指示在右，这才符合看图习惯。
+    等距网格还会让长网络名标签互相压字，且器件一多就直接溢出图幅边界。
+    """
+    # 大器件 = 引脚多的矩形符号，或带 U 前缀的主动器件（主控/稳压器都是读图的锚点）
+    big = [
+        d for d in draw
+        if d[1] == "BOX" and (len(d[2]) >= 8 or d[0]["ref"][:1].upper() == "U")
+    ]
+    small = [d for d in draw if d not in big]
+
+    pos: dict[str, tuple[float, float]] = {}
+
+    # ① 大器件（主控 / 稳压器）：x=0 竖排，逐个向下堆叠
+    y = 0.0
+    big_half_w = 0.0
+    for item, kind, numbers in big:
+        half_w, half_h = _symbol_size(kind, numbers)
+        big_half_w = max(big_half_w, half_w)
+        pos[item["ref"]] = (0.0, y + half_h)
+        y += 2 * half_h + 33.02
+    span_big = y - 33.02 if big else 0.0
+
+    # ② 小器件分两列区：连接器/晶振在左（电源与时钟入口），其余在右
+    left = [d for d in small if d[0]["ref"][:1].upper() in ("J", "Y", "X")]
+    right = [d for d in small if d not in left]
+
+    def stack(items: list[tuple[dict, str, list[str]]], side: int) -> None:
+        """side=-1 左侧、+1 右侧。每列上限 ROWS_CAP 个，超出往外开新列并垂直居中。"""
+        if not items:
+            return
+        gap = big_half_w + _LABEL_ROOM + 20.32
+        for i, (item, _kind, _numbers) in enumerate(items):
+            col, row = divmod(i, ROWS_CAP)
+            n_in_col = min(ROWS_CAP, len(items) - col * ROWS_CAP)
+            col_h = (n_in_col - 1) * ROW_STEP
+            pos[item["ref"]] = (
+                side * (gap + col * COL_STEP),
+                -col_h / 2 + row * ROW_STEP,
+            )
+
+    stack(left, -1)
+    stack(right, +1)
+
+    # ③ 由实际占位反推最小可容纳图幅：先算不带标签的包围盒，再加标签预留
+    xs, ys = [], []
+    for item, kind, numbers in draw:
+        half_w, half_h = _symbol_size(kind, numbers)
+        cx, cy = pos[item["ref"]]
+        xs += [cx - half_w, cx + half_w]
+        ys += [cy - half_h, cy + half_h]
+    if not xs:
+        return pos, "A4"
+
+    min_x, max_x = min(xs) - _LABEL_ROOM, max(xs) + _LABEL_ROOM
+    min_y, max_y = min(ys) - 12.7, max(ys) + 20.32  # 上方留给位号/值
+    need_w, need_h = max_x - min_x, max_y - min_y
+
+    paper = _PAPERS[-1][0]
+    page_w, page_h = _PAPERS[-1][1], _PAPERS[-1][2]
+    for name, pw, ph in _PAPERS:
+        if pw >= need_w + 20.32 and ph >= need_h + 20.32:
+            paper, page_w, page_h = name, pw, ph
+            break
+
+    # ④ 整体平移到图幅居中（KiCad 图纸坐标原点在左上，所以平移量都是正的）
+    dx = (page_w - need_w) / 2 - min_x
+    dy = (page_h - need_h) / 2 - min_y
+
+    # ⑤ 对齐 1.27mm（50 mil）栅格。ERC 会逐引脚报 endpoint_off_grid——
+    #    引脚坐标 = 符号中心 + 引脚本地位移，只要中心在栅格上，引脚就都在栅格上。
+    grid = 1.27
+
+    def snap(v: float) -> float:
+        return round(v / grid) * grid
+
+    return {ref: (snap(cx + dx), snap(cy + dy)) for ref, (cx, cy) in pos.items()}, paper
+
+
 # ---------------------------------------------------------------- 主流程
 
 def build(bom: dict, netlist: dict) -> str:
@@ -245,10 +348,19 @@ def build(bom: dict, netlist: dict) -> str:
     for ref in pins_of_ref:
         pins_of_ref[ref].sort(key=lambda p: (int(p) if p.isdigit() else 999, p))
 
-    # 布局：一行 4 个，间距按符号宽度放大，避免标签互相压
-    cols = 4
-    col_gap, row_gap = 63.5, 76.2
-    origin_x, origin_y = 50.8, 63.5
+    # 先定符号类型（它决定符号外形与引脚几何），再据此统一排版
+    draw: list[tuple[dict, str, list[str]]] = []
+    for item in comps:
+        numbers = pins_of_ref.get(item["ref"], [])
+        if not numbers:
+            continue  # 网表里没连接的器件不画（例如仅上料的测试点）
+        kind = _pick_symbol_kind(item["ref"], item.get("value", ""))
+        # 只连了一个脚的被动器件（数据有误时）退回矩形符号，宁可画得难看也不要崩
+        if kind in ("RES", "CAP", "XTAL") and len(numbers) < 2:
+            kind = "BOX"
+        draw.append((item, kind, numbers))
+
+    pos, paper = _layout(draw)
 
     lib_defs: list[str] = []
     lib_cache: dict[str, str] = {}
@@ -274,30 +386,33 @@ def build(bom: dict, netlist: dict) -> str:
 
     body: list[str] = []
 
-    for idx, item in enumerate(comps):
+    for item, kind, numbers in draw:
         ref = item["ref"]
-        numbers = pins_of_ref.get(ref, [])
-        if not numbers:
-            continue  # 网表里没连接的器件不画（例如仅上料的测试点）
-
-        kind = _pick_symbol_kind(ref, item.get("value", ""))
-        # 只连了一个脚的被动器件（数据有误时）退回矩形符号，宁可画得难看也不要崩
-        if kind in ("RES", "CAP", "XTAL") and len(numbers) < 2:
-            kind = "BOX"
         lib_id = lib_name_for(kind, numbers)
 
-        cx = origin_x + (idx % cols) * col_gap
-        cy = origin_y + (idx // cols) * row_gap
+        cx, cy = pos[ref]
 
-        prop_off = 6.35 if kind == "BOX" else 3.81
+        # 位号/值的摆放要按符号类型分开：
+        # 两脚器件上下都是引脚，标签必须让到右侧，否则会和引脚网络标签压字；
+        # 矩形符号上方是空的，就放在正上方。
+        if kind == "BOX":
+            _hw, half_h = _symbol_size(kind, numbers)
+            ref_x, ref_y = cx, cy - half_h - 3.81
+            val_y = ref_y - 2.54
+            justify = ""
+        else:
+            ref_x, ref_y = cx + 4.318, cy - 1.27
+            val_y = cy + 1.27
+            justify = " (justify left)"
+
         body.append(
             f"""  (symbol (lib_id "{lib_id}") (at {_n(cx)} {_n(cy)} 0) (unit 1)
     (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)
     (uuid "{_uid('sym', ref)}")
-    (property "Reference" "{ref}" (at {_n(cx)} {_n(cy - prop_off - 2.54)} 0)
-      (effects (font (size 1.27 1.27))))
-    (property "Value" "{item.get('value', '')}" (at {_n(cx)} {_n(cy - prop_off)} 0)
-      (effects (font (size 1.27 1.27))))
+    (property "Reference" "{ref}" (at {_n(ref_x)} {_n(ref_y)} 0)
+      (effects (font (size 1.27 1.27)){justify}))
+    (property "Value" "{item.get('value', '')}" (at {_n(ref_x)} {_n(val_y)} 0)
+      (effects (font (size 1.27 1.27)){justify}))
     (property "Footprint" "{item.get('footprint', '')}" (at {_n(cx)} {_n(cy)} 0)
       (effects (font (size 1.27 1.27)) hide))
     (property "Datasheet" "~" (at {_n(cx)} {_n(cy)} 0)
@@ -335,7 +450,7 @@ def build(bom: dict, netlist: dict) -> str:
   (generator "eeschema")
   (generator_version "8.0")
   (uuid "{sch_uuid}")
-  (paper "A4")
+  (paper "{paper}")
   (title_block
     (title "{title}")
     (rev "1")
