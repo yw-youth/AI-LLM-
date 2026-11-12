@@ -16,6 +16,7 @@
 | W10 | 2026-11-06 | 原理图生成打通：`kicad_sch.py` 输出 KiCad 8 工程包（.kicad_sch + 符号库 + 库表 + .kicad_pro）；三种板型 ERC 均 0 错误 0 警告；自检层补"器件引脚悬空"检查 | 3 板型 ERC 0/0；修掉 C3 悬空、DHT11 封装名两处真 bug | KiCad 只有 10.0.7（课程要 8） | 装 KiCad 8.0 复验；接真实模型 |
 | W10 | 2026-11-10 | DRC 检查闭环：`loop.py/repair.py/faults.py` + `demo_loop.py`，5 故障场景（去耦悬空/幻觉位号/引脚冲突/电源混用/缺GND）全部 ≤2 轮收敛，修复结果过 KiCad ERC 5/5；发现并修复"修复器振荡"bug（失败案例 6） | 闭环 5/5；ERC 终验 5/5 PASS | 无 | GitHub 推送；KiCad 8 复验 |
 | W10 | 2026-11-11 | W11/W14 提前：稳定性台架 `stability.py`（三板型×5 基线 15/15，中位 0.82–0.87s）；设计报告初稿 `docs/07-设计报告初稿.md`（六章全，数字来自真实运行，⏳ 项待 --live 回填） | mock 基线 15/15 | API Key 未配、GitHub 未推 | --live 后跑 `stability.py --live` 回填报告 4.2/4.3 节 |
+| W11 | 2026-11-12 | ① 原理图排版重做：按功能分区（主控居中/电源时钟在左/去耦指示在右）+ 图幅 A4-A3-A2 自适应 + 1.27mm 栅格吸附；② 版本策略定案：产物写 v8 格式、用 KiCad 10 验证，取消"必须装 8"的前置条件；③ 答辩 PPT 成品（10 页）与演示视频脚本；④ 仓库身份与远程对齐 `github.com/yw-youth/AI-LLM-` | 美化后 ERC 曾跳 11 条 endpoint_off_grid，吸附后回落 0/0（失败案例 7） | GitHub TLS 在沙箱被拦，push 需本机执行 | 本机 push；拿到 API Key 后回填真实模型数据 |
 
 ## 里程碑
 
@@ -24,8 +25,11 @@
 - [x] 原理图生成（`out/board.kicad_pro` 可打开；ERC 0 错误 0 警告）
 - [x] DRC 闭环（5 故障场景 ≤2 轮收敛，修复结果过 KiCad ERC 5/5；`out/loop_report.md`）
 - [x] 设计报告初稿（`docs/07-设计报告初稿.md`；⏳ 项待 --live 数据回填）
+- [x] 答辩 PPT（`docs/deck/答辩PPT.pptx`，10 页；`build_ppt.py` 可重建）
+- [x] 演示视频脚本（`docs/08-演示视频脚本.md`：分镜/旁白/命令清单）
 - [ ] 真实模型接入（台架已备好：`python scripts/stability.py --live`）
-- [ ] 正式交付（仓库 + 报告 + 视频 + PPT）
+- [ ] 演示视频录制（脚本已就绪，需本机录屏 + 配音）
+- [ ] 正式交付（仓库 + 报告 + 视频 + PPT 齐备后提交）
 
 ## 怎么更新
 
