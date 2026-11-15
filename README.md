@@ -43,7 +43,7 @@ ls out/            # bom.csv / bom.json / netlist.json / board.net / board.kicad
 
 ## 在 KiCad 里看结果 + 机器验收
 
-用 KiCad 打开 `out/board.kicad_pro`，就能看到自动生成的原理图（器件符号 + 网络标签）。
+用 KiCad 打开 `out/board.kicad_pro`，就能看到自动生成的原理图（器件符号 + 真正交导线 + 网络标签）。
 
 想证明"真的没问题"不要靠肉眼，跑 KiCad 自带的电气规则检查：
 
@@ -63,8 +63,28 @@ python scripts/kicad_check.py          # 自动找 kicad-cli，跑 ERC，汇总�
 （`kicad-cli` 跑 ERC 判定，不是肉眼确认）。这样既不依赖"必须装 8"的前置条件，也不会
 让只用 8 的评审方打不开文件。
 
-> 连接用**网络标签**表达（同名即同网络），不画 wire——这是"连接正确性"与"画图工作量"
-> 之间的取舍，报告的技术选型一节有完整说明。
+### 两道机器验收：ERC 通过 ≠ 图画对了
+
+```bash
+python scripts/kicad_check.py          # A. 电气规则：0 错误 / 0 警告
+python scripts/sch_netlist_check.py    # B. 网表等价：图上的连接 == 设计的连接
+```
+
+只跑 ERC 是不够的。ERC 查的是电气**规则**，它不知道"我们想连什么"——实测踩过一次：
+晶振的 XTAL1 / XTAL2 两个网络被一条竖干线并成了一个网，ERC 依然 0 违规
+（两个被动脚短接不违反任何规则，它只是错的）。所以第二道验收改成让 KiCad 从
+画好的原理图里**导出网表**，再和 `netlist.json` 逐网比对：
+
+```
++5V        OK      6 脚
+XTAL1      OK      3 脚
+XTAL2      OK      3 脚
+汇总：设计网表与原理图网表完全一致（分网等价）
+```
+
+三种板型（最小系统 / 采集 / 电源）现在两道验收全绿。连接表达按"就近画线、
+跨区用标签"的真人习惯来：同一簇里的引脚拉真实正交导线，跨区或电源类网络用网络标签
+（同名即同网络），走不通时也能优雅退回标签，保证任何输入都出得了图。
 
 ## DRC 检查闭环（进阶挑战）
 
@@ -115,10 +135,13 @@ pcb-agent/
 │   ├── repair.py           # 规则修复器：只修能从错误信息安全推断的错，其余如实上报
 │   ├── faults.py           # 故障注入器：把"模型会怎么错"变成可复现的测试用例
 │   ├── kicad_sch.py        # 网表 → 原理图工程（.kicad_sch + 符号库 + 库表 + .kicad_pro）
+│   ├── pinmap.py           # 引脚号 → 引脚名映射（网表只有引脚号，符号要显示 XTAL1 而不是 7）
 │   └── kicad_export.py     # JSON → KiCad 网表（.net）
 ├── scripts/
 │   ├── checkin.py          # 每周 check-in：写 PROGRESS.md + git commit + 密钥扫描
 │   ├── kicad_check.py      # 调 kicad-cli 跑 ERC，把"能打开"变成机器判据
+│   ├── sch_netlist_check.py # 从原理图导出网表与设计网表比对，把"画对了"变成机器判据
+│   ├── preview_sch.py      # 开发用：原理图导出 PDF → PNG，改排版时看图
 │   ├── demo_loop.py        # 闭环演示：5 种故障注入 → 修复 → ERC 终验 → loop_report.md
 │   ├── stability.py        # 稳定性台架：三板型×N 次通过率/耗时 → stability_report.md
 │   └── regress.py          # 10 条用例回归集（mock 可判定项的基线）
@@ -131,7 +154,7 @@ pcb-agent/
 │   ├── 03-设计报告骨架.md
 │   ├── 04-答辩5分钟提纲.md
 │   ├── 05-Git留痕规范.md
-│   ├── 06-失败案例.md          # 7 个真实案例：现象/定位/根因/修法/教训
+│   ├── 06-失败案例.md          # 10 个真实案例：现象/定位/根因/修法/教训
 │   ├── 07-设计报告初稿.md      # 报告正文初稿，数字全部来自真实运行结果
 │   ├── 08-演示视频脚本.md      # 3–5 分钟录屏脚本：分镜、旁白、命令清单、翻车点
 │   └── deck/                   # 答辩 PPT（10 页）与生成脚本，可一条命令重建

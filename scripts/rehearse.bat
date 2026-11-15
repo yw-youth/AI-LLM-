@@ -9,24 +9,31 @@ REM Chinese text. In the real take you type the Chinese sentence yourself -
 REM both parse to the same Arduino board (that is part of the demo).
 cd /d "%~dp0.."
 
-echo === [0/5] UTF-8 console (as the video script requires: chcp 65001) ===
+echo === [0/6] UTF-8 console (as the video script requires: chcp 65001) ===
 chcp 65001 >nul
 
-echo === [1/5] Reset out\ so the take grows artifacts from zero ===
+echo === [1/6] Reset out\ so the take grows artifacts from zero ===
 if exist out rmdir /s /q out
 
-echo === [2/5] Main pipeline: one sentence - KiCad project ===
+echo === [2/6] Main pipeline: one sentence - KiCad project ===
 python src/pipeline.py "Arduino minimal system board"
 if errorlevel 1 goto failed
 
-echo === [3/5] Artifacts list (the 8 outputs) ===
+echo === [3/6] Artifacts list (the 8 outputs) ===
 dir /b out
 
-echo === [4/5] Machine acceptance: KiCad ERC on the three boards ===
+echo === [4/6] Machine acceptance A: KiCad ERC on the three boards ===
 python scripts/kicad_check.py
 if errorlevel 1 goto failed
 
-echo === [5/5] Closed-loop demo: 5 fault scenarios ===
+echo === [5/6] Machine acceptance B: schematic netlist == design netlist ===
+REM ERC only checks rules; this compares the netlist KiCad exports from the
+REM drawn schematic against the netlist we meant to implement. This is the
+REM check that catches "two nets silently merged into one".
+python scripts/sch_netlist_check.py
+if errorlevel 1 goto failed
+
+echo === [6/6] Closed-loop demo: 5 fault scenarios ===
 python scripts/demo_loop.py
 if errorlevel 1 goto failed
 

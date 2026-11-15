@@ -239,7 +239,7 @@ txt(s, ML + 0.26, 5.96, 7.2, 0.3, "悬空网络 / 引脚冲突 / 去耦缺失 / 
     size=11, color=MUTE)
 
 # 右：三条手段的数字锚点
-stats = [("5", "类自检规则"), ("10", "条回归用例"), ("7", "个真实失败案例")]
+stats = [("5", "类自检规则"), ("10", "条回归用例"), ("10", "个真实失败案例")]
 y = 2.05
 for num, label in stats:
     txt(s, 8.95, y, 1.1, 0.62, num, size=34, bold=True, color=BLUE)
@@ -295,7 +295,7 @@ s = add_slide()
 header(s, "05  实验结果", "每一分都有出处：全部来自仓库真实运行", 6)
 
 kpis = [("8 / 8", "回归集", "10 条用例中 8 条可机器判定，全部通过"),
-        ("0 / 0", "KiCad ERC", "三种板型：0 错误 0 警告"),
+        ("0 / 0", "KiCad ERC", "三种板型：0 错误 0 警告\n且网表与设计等价"),
         ("15 / 15", "稳定性基线", "三板型 × 5 次，中位耗时 0.82s"),
         ("6", "板型能力", "3 种板型 + 明确拒绝超范围需求")]
 x = ML
@@ -310,13 +310,14 @@ for num, label, note in kpis:
 txt(s, ML, 4.86, 11.4, 0.3, "数据来源（可复现）", size=12, bold=True, color=NAVY)
 src = [("scripts/regress.py", "10 条用例的期望值判定"),
        ("scripts/kicad_check.py", "kicad-cli 跑 ERC，非肉眼"),
+       ("scripts/sch_netlist_check.py", "原理图导网表 vs 设计网表"),
        ("scripts/stability.py", "三板型 × N 次通过率与耗时"),
        ("scripts/demo_loop.py", "闭环报告 + ERC 终验")]
 x = ML
 for cmd, note in src:
-    txt(s, x, 5.24, 2.60, 0.26, cmd, size=9.5, color=BLUE, font=MONO)
-    txt(s, x, 5.52, 2.60, 0.5, note, size=9, color=MUTE, line=1.35)
-    x += 2.60 + 0.30
+    txt(s, x, 5.24, 2.16, 0.30, cmd, size=8.5, color=BLUE, font=MONO)
+    txt(s, x, 5.58, 2.16, 0.5, note, size=8.5, color=MUTE, line=1.35)
+    x += 2.16 + 0.14
 
 rect(s, ML, 6.16, MR - ML, 0.012, fill=LINE)
 txt(s, ML, 6.3, 11.4, 0.5,
@@ -325,33 +326,36 @@ txt(s, ML, 6.3, 11.4, 0.5,
 
 # ================================================================ P7 失败案例
 s = add_slide()
-header(s, "06  失败案例分析", "7 个真实教训：每个都被机器检查接住", 7)
+header(s, "06  失败案例分析", "10 个真实教训：每个都被机器检查接住", 7)
 
 rows = [("案例", "现象", "根因", "已机器化"),
         ("① 悬空去耦", "C3 只接了 GND", "只查网络不看器件", "open_pin 检查"),
         ("② 幻觉封装", "Sensor:DHT11 不存在", "凭记忆写库名", "ERC + 库名核对"),
         ("③ 子符号命名", "整图加载失败，无行号", "须与父符号同名", "生成器固化"),
         ("④ 超范围乐观", "PCIe 板也返回成功", "缺能力边界", "out_of_scope 拒绝"),
-        ("⑤ 关键词误判", "「加个电源灯」被判为电源板", "泛关键词匹配", "收紧规则"),
+        ("⑤ 关键词误判", "「加个电源灯」判成电源板", "泛关键词匹配", "收紧规则"),
         ("⑥ 修复器振荡", "4 轮输出完全重复", "把已连脚当悬空脚", "无进展止损"),
-        ("⑦ 栅格漂移", "11 条 off_grid", "居中破坏 50mil 栅格", "坐标吸附")]
-tw, th = MR - ML, 0.52
-tbl_shape = s.shapes.add_table(len(rows), 4, Inches(ML), Inches(1.9),
+        ("⑦ 栅格漂移", "11 条 off_grid", "居中破坏 50mil 栅格", "坐标吸附"),
+        ("⑧ 引脚朝向写反", "+5V 与 GND 短路", "朝向表与符号定义相反", "ERC + 单一事实源"),
+        ("⑨ 包围盒漏引脚", "线从 DHT11 身上穿过", "避让矩形少算 3.81mm", "几何自检"),
+        ("⑩ ERC 全绿却并网", "XTAL1/XTAL2 变同一网", "各网布线互不知情", "网表等价校验")]
+tw, th = MR - ML, 0.40
+tbl_shape = s.shapes.add_table(len(rows), 4, Inches(ML), Inches(1.78),
                                Inches(tw), Inches(th * len(rows)))
 tbl = tbl_shape.table
-for c, wd in enumerate([1.85, 4.2, 3.3, 2.1]):
+for c, wd in enumerate([1.95, 4.15, 3.35, 2.0]):
     tbl.columns[c].width = Inches(wd)
 for r in range(len(rows)):
-    tbl.rows[r].height = Inches(th if r else 0.44)
+    tbl.rows[r].height = Inches(th if r else 0.36)
 
 for r, row in enumerate(rows):
     for c, val in enumerate(row):
         cell = tbl.cell(r, c)
         cell.text = ""
-        cell.margin_left = Inches(0.14)
-        cell.margin_right = Inches(0.1)
-        cell.margin_top = Inches(0.04)
-        cell.margin_bottom = Inches(0.04)
+        cell.margin_left = Inches(0.12)
+        cell.margin_right = Inches(0.08)
+        cell.margin_top = Inches(0.02)
+        cell.margin_bottom = Inches(0.02)
         cell.vertical_anchor = MSO_ANCHOR.MIDDLE
         cell.fill.solid()
         if r == 0:
@@ -361,14 +365,14 @@ for r, row in enumerate(rows):
         p = cell.text_frame.paragraphs[0]
         run = p.add_run()
         run.text = val
-        run.font.size = Pt(11 if r == 0 else 10)
+        run.font.size = Pt(11 if r == 0 else 9.5)
         run.font.bold = (r == 0) or (c == 0)
         run.font.name = FONT
         run.font.color.rgb = WHITE if r == 0 else INK
 
-txt(s, ML, 6.34, 11.4, 0.5,
-    "结论：失败案例全部来自真实调试记录，不是事后编的；其中 5 个已经变成自动检查，"
-    "回归集不断复现它们。", size=11, color=NAVY)
+txt(s, ML, 6.44, 11.4, 0.5,
+    "结论：失败案例全部来自真实调试记录，不是事后编的；其中 8 个已经变成自动检查，"
+    "回归集不断复现它们。⑩ 是这节课最值钱的一条：ERC 全绿 ≠ 图对了。", size=11, color=NAVY)
 
 # ================================================================ P8 成果演示
 s = add_slide()
@@ -410,7 +414,7 @@ txt(s, ML, 3.3, 4.4, 0.9, "4 / 7", size=44, bold=True, color=NAVY)
 txt(s, ML + 1.9, 3.62, 3.0, 0.4, "已完成（含进阶 20 分项）", size=11, color=MUTE)
 
 txt(s, ML, 4.52, 5.0, 0.3, "已完成", size=12, bold=True, color=MUTE)
-done_list = "五步流水线 · 三种板型 · 自检层 · 原理图工程包\nDRC 闭环 · 回归集 · CI · 7 个失败案例"
+done_list = "五步流水线 · 三种板型 · 自检层 · 原理图工程包\nDRC 闭环 · 回归集 · CI · 10 个失败案例"
 txt(s, ML, 4.88, 5.2, 0.8, done_list, size=10.5, color=INK, line=1.45)
 
 # 右：进行中
@@ -438,6 +442,6 @@ txt(s, 1.55, 5.4, 9.6, 0.34, "复现命令", size=11, bold=True, color=BLUE)
 txt(s, 1.55, 5.74, 9.6, 0.36,
     "python src/pipeline.py \"帮我设计一块 Arduino 最小系统板\"", size=13, color=INK, font=MONO)
 
-out = ROOT / "PCB设计Agent答辩汇报.pptx"
+out = ROOT / "答辩PPT.pptx"
 prs.save(out)
 print("saved", out, out.stat().st_size, "bytes,", len(prs.slides.__iter__.__self__._sldIdLst), "slides")
