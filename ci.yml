@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  regress:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      # 项目刻意只用标准库，无需安装任何依赖
+      - name: 冒烟：mock 流水线
+        run: python src/pipeline.py "帮我设计一块 Arduino 最小系统板"
+      - name: 回归集
+        run: python scripts/regress.py
